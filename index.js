@@ -103,7 +103,7 @@ const Post = mongoose.model("Post", postSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// --- Endpoint per creare un post ---
+// --- POST: crea un nuovo post con immagine ---
 app.post("/api/post", checkFingerprint, csrfProtection, upload.single("immagine"), async (req, res) => {
   try {
     const userId = req.session.user.id;
@@ -130,6 +130,54 @@ app.post("/api/post", checkFingerprint, csrfProtection, upload.single("immagine"
   }
 });
 
+// --- GET: recupera post pubblicati nelle ultime 24h ---
+app.get("/api/posts", checkFingerprint, async (req, res) => {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const posts = await Post.find({ timestamp: { $gte: cutoff } })
+      .sort({ timestamp: -1 })
+      .populate("autore", "username nome _id")
+      .lean();
+
+    const result = posts.map(post => ({
+      id: post._id,
+      autore: {
+        id: post.autore._id,
+        username: post.autore.username,
+        nome: post.autore.nome,
+        profilePicUrl: `/api/user-photo/${post.autore._id}`
+      },
+      immagineUrl: `/api/post-image/${post._id}`,
+      didascalia: post.didascalia,
+      timestamp: post.timestamp,
+      likeCount: post.likes?.length || 0,
+      commenti: post.commenti || []
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Errore recupero post:", err);
+    res.status(500).json({ message: "Errore interno" });
+  }
+});
+
+// --- GET: immagine post ---
+app.get("/api/post-image/:postId", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post || !post.immagine?.data) {
+      return res.status(404).send("Nessuna immagine trovata");
+    }
+
+    res.contentType(post.immagine.contentType);
+    res.send(post.immagine.data);
+  } catch (err) {
+    res.status(500).send("Errore caricamento immagine");
+  }
+});
+
+// Avvio del server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server attivo su porta ${PORT}`);
