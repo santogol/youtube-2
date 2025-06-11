@@ -103,7 +103,32 @@ const Post = mongoose.model("Post", postSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Resto delle rotte...
+// --- Endpoint per creare un post ---
+app.post("/api/post", checkFingerprint, csrfProtection, upload.single("immagine"), async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Immagine mancante" });
+    }
+
+    const nuovoPost = new Post({
+      autore: userId,
+      immagine: {
+        data: req.file.buffer,
+        contentType: req.file.mimetype
+      },
+      didascalia: req.body.didascalia || ""
+    });
+
+    await nuovoPost.save();
+
+    res.status(201).json({ message: "Post creato con successo" });
+  } catch (err) {
+    console.error("Errore creazione post:", err);
+    res.status(500).json({ message: "Errore interno" });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
