@@ -1,54 +1,81 @@
-<header class="header">
-  <div class="logo">BePoli</div>
-  <nav class="nav">
-    <a href="profile.html">Profilo</a>
-    <a href="home.html" class="active">Home</a>
-    <a href="#" id="logoutLink">Logout</a>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home - BePoli</title>
+  <link rel="stylesheet" href="style-profilo.css" />
+</head>
+<body>
+  <header>
+    <a href="prova18.html">
+      <img src="logobepoli.png" alt="Logo" id="logo" />
+    </a>
+  </header>
+
+  <nav class="leftnav" id="mainnav">
+    <ul>
+      <li><a href="prova18.html">Home</a></li>
+      <li><a href="#">Messaggi</a></li>
+      <li><a href="#">Notifiche</a></li>
+      <li><a href="search.html">Esplora</a></li>
+      <li><a href="profile.html">Profilo</a></li>
+      <li><a href="modificaprofilo.html">Crea</a></li>
+    </ul>
   </nav>
-</header>
 
-<section class="create-post-section">
-  <form id="createPostForm" enctype="multipart/form-data">
-    <textarea id="postDescInput" name="desc"
-      placeholder="Scrivi una didascalia…" maxlength="500" rows="3"></textarea>
-    <div class="file-input-wrapper">
-      <input type="file" id="postImageInput" name="image" accept="image/*">
+  <main>
+    <div id="postContainer">
+      <p>Caricamento post...</p>
     </div>
-    <button type="submit" class="post-submit-button">Pubblica</button>
-  </form>
-  <div id="createPostError" class="error-message hidden"></div>
-</section>
+  </main>
 
-<main class="feed-container" id="feed"></main>
+  <script>
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch("/api/posts", {
+          credentials: "include"
+        });
+        if (!res.ok) throw new Error("Errore nel recupero dei post");
+        const posts = await res.json();
 
-<template id="post-template">
-  <article class="post-card">
-    <header class="post-header">
-      <div class="post-user-info">
-        <img class="post-user-avatar" src="images/fotoprofilo.png" alt="Avatar utente">
-        <span class="post-username">Username</span>
-      </div>
-      <time class="post-date" datetime="">Data</time>
-    </header>
-    <div class="post-image-container">
-      <img class="post-image" src="" alt="Immagine del post">
-    </div>
-    <div class="post-actions">
-      <button class="like-button">❤ <span class="like-count">0</span></button>
-      <button class="comment-toggle-button">💬 <span class="comment-count">0</span></button>
-    </div>
-    <div class="post-description">
-      <p class="post-desc-text"></p>
-    </div>
-    <div class="comment-section hidden">
-      <ul class="comments-list"></ul>
-      <form class="comment-form">
-        <input type="text" class="comment-input"
-               placeholder="Scrivi un commento…" maxlength="200">
-        <button type="submit" class="comment-submit">Invia</button>
-      </form>
-    </div>
-  </article>
-</template>
+        const container = document.getElementById("postContainer");
+        container.innerHTML = "";
 
-<script src="js/home.js"></script>
+        posts.forEach(post => {
+          const div = document.createElement("div");
+          div.style.border = "1px solid #ccc";
+          div.style.margin = "20px";
+          div.style.padding = "10px";
+          div.style.backgroundColor = "#fff";
+
+          const autore = document.createElement("p");
+          autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
+
+          const img = document.createElement("img");
+          img.src = `/api/post-img/${post._id}`;
+          img.alt = "Post";
+          img.style.width = "100%";
+          img.style.maxWidth = "500px";
+          img.onerror = () => img.style.display = "none";
+
+          const didascalia = document.createElement("p");
+          didascalia.textContent = post.didascalia;
+
+          const timestamp = document.createElement("small");
+          timestamp.textContent = new Date(post.timestamp).toLocaleString();
+
+          div.appendChild(autore);
+          div.appendChild(img);
+          div.appendChild(didascalia);
+          div.appendChild(timestamp);
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById("postContainer").innerHTML = "<p>Errore nel caricamento post</p>";
+      }
+    });
+  </script>
+</body>
+</html>
