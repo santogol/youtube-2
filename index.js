@@ -103,7 +103,7 @@ const Post = mongoose.model("Post", postSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ✅ Route per la creazione dei post
+// ✅ Route creazione post
 app.post("/api/post", checkFingerprint, upload.single("immagine"), async (req, res) => {
   try {
     if (!req.file || !req.body.didascalia) {
@@ -124,6 +124,63 @@ app.post("/api/post", checkFingerprint, upload.single("immagine"), async (req, r
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Errore nella creazione del post" });
+  }
+});
+
+// ✅ Route per ottenere tutti i post (usata nella home)
+app.get("/api/posts", async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .sort({ timestamp: -1 })
+      .populate("autore", "username profilePic");
+
+    const simplifiedPosts = posts.map(post => ({
+      id: post._id,
+      didascalia: post.didascalia,
+      timestamp: post.timestamp,
+      autore: {
+        username: post.autore.username,
+        profilePicUrl: `/profile-pic/${post.autore._id}`
+      },
+      immagineUrl: `/api/post-img/${post._id}`
+    }));
+
+    res.json(simplifiedPosts);
+  } catch (err) {
+    console.error("Errore nel recupero post:", err);
+    res.status(500).json({ message: "Errore interno" });
+  }
+});
+
+// ✅ Route per servire immagine post
+app.get("/api/post-img/:id", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post || !post.immagine || !post.immagine.data) {
+      return res.status(404).send("Immagine non trovata");
+    }
+
+    res.set("Content-Type", post.immagine.contentType);
+    res.send(post.immagine.data);
+  } catch (err) {
+    console.error("Errore caricamento immagine:", err);
+    res.status(500).send("Errore interno");
+  }
+});
+
+// ✅ Route per immagine profilo
+app.get("/profile-pic/:id", async (req, res) => {
+  try {
+    const utente = await Utente.findById(req.params.id);
+    if (utente?.profilePic?.data) {
+      res.set("Content-Type", utente.profilePic.contentType);
+      return res.send(utente.profilePic.data);
+    } else {
+      return res.redirect("/fotoprofilo.png");
+    }
+  } catch (err) {
+    console.error("Errore caricamento foto profilo:", err);
+    return res.redirect("/fotoprofilo.png");
   }
 });
 
