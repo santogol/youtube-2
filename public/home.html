@@ -29,7 +29,7 @@
       <p>Caricamento post...</p>
     </div>
   </main>
- <script>
+  <script>
   window.addEventListener("DOMContentLoaded", async () => {
     try {
       const res = await fetch("/api/posts", { credentials: "include" });
@@ -66,7 +66,7 @@
         const timestamp = document.createElement("small");
         timestamp.textContent = new Date(post.timestamp).toLocaleString();
 
-        // 🗨️ Commenti
+        // 🔽 Container commenti
         const commentContainer = document.createElement("div");
         commentContainer.style.marginTop = "10px";
 
@@ -74,26 +74,69 @@
         commentTitle.textContent = "Commenti:";
         commentContainer.appendChild(commentTitle);
 
+        const commentList = document.createElement("div");
+        commentList.style.marginTop = "4px";
+        commentContainer.appendChild(commentList);
+
         if (post.commenti?.length > 0) {
           post.commenti.forEach(c => {
             const commento = document.createElement("p");
             commento.innerHTML = `<strong>${c.username}</strong>: ${c.testo}`;
             commento.style.margin = "4px 0";
-            commentContainer.appendChild(commento);
+            commentList.appendChild(commento);
           });
         } else {
           const noComment = document.createElement("p");
           noComment.textContent = "Nessun commento ancora.";
           noComment.style.fontStyle = "italic";
           noComment.style.opacity = "0.6";
-          commentContainer.appendChild(noComment);
+          commentList.appendChild(noComment);
         }
+
+        // ✏️ Form per nuovo commento
+        const commentForm = document.createElement("form");
+        commentForm.style.marginTop = "10px";
+        commentForm.innerHTML = `
+          <input type="text" placeholder="Scrivi un commento..." style="width: 80%; padding: 6px;" />
+          <button type="submit" style="padding: 6px;">Invia</button>
+        `;
+
+        commentForm.addEventListener("submit", async e => {
+          e.preventDefault();
+          const input = commentForm.querySelector("input");
+          const testo = input.value.trim();
+          if (!testo) return;
+
+          try {
+            const res = await fetch(`/api/post/${post.id}/comment`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ testo })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const nuovo = document.createElement("p");
+              nuovo.innerHTML = `<strong>${data.autore.username}</strong>: ${data.testo}`;
+              commentList.appendChild(nuovo);
+              input.value = "";
+            } else {
+              alert("Errore durante l'invio del commento");
+            }
+          } catch (err) {
+            console.error("Errore commento:", err);
+            alert("Errore di rete");
+          }
+        });
 
         div.appendChild(autore);
         div.appendChild(img);
         div.appendChild(didascalia);
         div.appendChild(timestamp);
         div.appendChild(commentContainer);
+        div.appendChild(commentForm);
+
         container.appendChild(div);
       });
     } catch (err) {
