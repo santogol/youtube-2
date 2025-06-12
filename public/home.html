@@ -32,9 +32,7 @@
  <script>
   window.addEventListener("DOMContentLoaded", async () => {
     try {
-      const res = await fetch("/api/posts", {
-        credentials: "include"
-      });
+      const res = await fetch("/api/posts", { credentials: "include" });
       if (!res.ok) throw new Error("Errore nel recupero dei post");
       const posts = await res.json();
 
@@ -48,67 +46,54 @@
         div.style.padding = "10px";
         div.style.backgroundColor = "#fff";
 
+        // Autore
         const autore = document.createElement("p");
         autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
 
+        // Immagine
         const img = document.createElement("img");
-        img.src = `/api/post-img/${post.id}`;
+        img.src = post.immagineUrl;
         img.alt = "Post";
         img.style.width = "100%";
         img.style.maxWidth = "500px";
         img.onerror = () => img.style.display = "none";
 
+        // Didascalia
         const didascalia = document.createElement("p");
         didascalia.textContent = post.didascalia;
 
+        // Timestamp
         const timestamp = document.createElement("small");
         timestamp.textContent = new Date(post.timestamp).toLocaleString();
 
-        // 🔽 COMMENTI
-        const commentiContainer = document.createElement("div");
-        commentiContainer.style.marginTop = "10px";
+        // 🗨️ Commenti
+        const commentContainer = document.createElement("div");
+        commentContainer.style.marginTop = "10px";
 
-        const nuovoCommentoInput = document.createElement("input");
-        nuovoCommentoInput.placeholder = "Scrivi un commento...";
-        nuovoCommentoInput.style.width = "80%";
-        nuovoCommentoInput.style.marginRight = "5px";
+        const commentTitle = document.createElement("strong");
+        commentTitle.textContent = "Commenti:";
+        commentContainer.appendChild(commentTitle);
 
-        const inviaBtn = document.createElement("button");
-        inviaBtn.textContent = "Invia";
-        inviaBtn.onclick = async () => {
-          const testo = nuovoCommentoInput.value.trim();
-          if (!testo) return alert("Scrivi qualcosa prima!");
-
-          const resp = await fetch(`/api/post/${post.id}/comment`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify({ testo })
+        if (post.commenti?.length > 0) {
+          post.commenti.forEach(c => {
+            const commento = document.createElement("p");
+            commento.innerHTML = `<strong>${c.username}</strong>: ${c.testo}`;
+            commento.style.margin = "4px 0";
+            commentContainer.appendChild(commento);
           });
-
-          if (resp.ok) {
-            const nuovo = await resp.json();
-            const nuovoEl = document.createElement("p");
-            nuovoEl.innerHTML = `<strong>${nuovo.autore.username}:</strong> ${nuovo.testo}`;
-            commentiContainer.appendChild(nuovoEl);
-            nuovoCommentoInput.value = "";
-          } else {
-            alert("Errore nel salvataggio commento");
-          }
-        };
-
-        const commentSection = document.createElement("div");
-        commentSection.appendChild(nuovoCommentoInput);
-        commentSection.appendChild(inviaBtn);
+        } else {
+          const noComment = document.createElement("p");
+          noComment.textContent = "Nessun commento ancora.";
+          noComment.style.fontStyle = "italic";
+          noComment.style.opacity = "0.6";
+          commentContainer.appendChild(noComment);
+        }
 
         div.appendChild(autore);
         div.appendChild(img);
         div.appendChild(didascalia);
         div.appendChild(timestamp);
-        div.appendChild(commentiContainer);
-        div.appendChild(commentSection);
+        div.appendChild(commentContainer);
         container.appendChild(div);
       });
     } catch (err) {
@@ -117,5 +102,6 @@
     }
   });
 </script>
+
 </body>
 </html>
