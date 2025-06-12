@@ -29,10 +29,12 @@
       <p>Caricamento post...</p>
     </div>
   </main>
-  <script>
+ <script>
   window.addEventListener("DOMContentLoaded", async () => {
     try {
-      const res = await fetch("/api/posts", { credentials: "include" });
+      const res = await fetch("/api/posts", {
+        credentials: "include"
+      });
       if (!res.ok) throw new Error("Errore nel recupero dei post");
       const posts = await res.json();
 
@@ -50,7 +52,7 @@
         autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
 
         const img = document.createElement("img");
-        img.src = post.immagineUrl;
+        img.src = `/api/post-img/${post.id}`;
         img.alt = "Post";
         img.style.width = "100%";
         img.style.maxWidth = "500px";
@@ -62,98 +64,51 @@
         const timestamp = document.createElement("small");
         timestamp.textContent = new Date(post.timestamp).toLocaleString();
 
-        // ❤️ Like
-        const likeBtn = document.createElement("button");
-        likeBtn.textContent = "❤️ Mi piace";
-        likeBtn.style.marginTop = "10px";
+        // 🔽 COMMENTI
+        const commentiContainer = document.createElement("div");
+        commentiContainer.style.marginTop = "10px";
 
-        const likeCounter = document.createElement("span");
-        likeCounter.textContent = ` 0 like`;
-        likeCounter.style.marginLeft = "10px";
+        const nuovoCommentoInput = document.createElement("input");
+        nuovoCommentoInput.placeholder = "Scrivi un commento...";
+        nuovoCommentoInput.style.width = "80%";
+        nuovoCommentoInput.style.marginRight = "5px";
 
-        likeBtn.addEventListener("click", async () => {
-          try {
-            const resp = await fetch(`/api/post/${post.id}/like`, {
-              method: "PUT",
-              credentials: "include"
-            });
-            if (!resp.ok) throw new Error("Errore nel like");
-            const updated = await resp.json();
-            likeCounter.textContent = ` ${updated.likesCount} like`;
-          } catch (err) {
-            console.error("Errore like:", err);
-          }
-        });
+        const inviaBtn = document.createElement("button");
+        inviaBtn.textContent = "Invia";
+        inviaBtn.onclick = async () => {
+          const testo = nuovoCommentoInput.value.trim();
+          if (!testo) return alert("Scrivi qualcosa prima!");
 
-        // 💬 Sezione commenti
-        const commentSection = document.createElement("div");
-        commentSection.style.marginTop = "10px";
-
-        const commentList = document.createElement("ul");
-        commentList.style.listStyle = "none";
-        commentList.style.padding = "0";
-
-        // Carica commenti se presenti
-        if (post.commenti && Array.isArray(post.commenti)) {
-          post.commenti.forEach(c => {
-            const li = document.createElement("li");
-            li.textContent = `${c.autore?.username || 'Anonimo'}: ${c.testo}`;
-            commentList.appendChild(li);
+          const resp = await fetch(`/api/post/${post.id}/comment`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ testo })
           });
-        }
 
-        const commentForm = document.createElement("form");
-        commentForm.style.marginTop = "8px";
-        commentForm.onsubmit = async (e) => {
-          e.preventDefault();
-          const testo = inputCommento.value.trim();
-          if (!testo) return;
-
-          try {
-            const res = await fetch(`/api/post/${post.id}/comment`, {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ testo })
-            });
-            if (!res.ok) throw new Error("Errore nell'invio del commento");
-
-            const nuovo = await res.json();
-
-            const li = document.createElement("li");
-            li.textContent = `${nuovo.autore.username}: ${nuovo.testo}`;
-            commentList.appendChild(li);
-            inputCommento.value = "";
-          } catch (err) {
-            alert("Errore: " + err.message);
+          if (resp.ok) {
+            const nuovo = await resp.json();
+            const nuovoEl = document.createElement("p");
+            nuovoEl.innerHTML = `<strong>${nuovo.autore.username}:</strong> ${nuovo.testo}`;
+            commentiContainer.appendChild(nuovoEl);
+            nuovoCommentoInput.value = "";
+          } else {
+            alert("Errore nel salvataggio commento");
           }
         };
 
-        const inputCommento = document.createElement("input");
-        inputCommento.type = "text";
-        inputCommento.placeholder = "Scrivi un commento...";
-        inputCommento.style.width = "80%";
-        inputCommento.required = true;
+        const commentSection = document.createElement("div");
+        commentSection.appendChild(nuovoCommentoInput);
+        commentSection.appendChild(inviaBtn);
 
-        const submitComment = document.createElement("button");
-        submitComment.textContent = "Invia";
-        submitComment.type = "submit";
-
-        commentForm.appendChild(inputCommento);
-        commentForm.appendChild(submitComment);
-
-        commentSection.appendChild(commentList);
-        commentSection.appendChild(commentForm);
-
-        // ⬇️ Append tutto
         div.appendChild(autore);
         div.appendChild(img);
         div.appendChild(didascalia);
         div.appendChild(timestamp);
-        div.appendChild(likeBtn);
-        div.appendChild(likeCounter);
+        div.appendChild(commentiContainer);
         div.appendChild(commentSection);
-
         container.appendChild(div);
       });
     } catch (err) {
