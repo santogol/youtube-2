@@ -150,6 +150,41 @@ app.post("/api/post/:id/like", checkFingerprint, async (req, res) => {
   }
 });
 
+// ✅ Aggiungi un commento a un post
+app.post("/api/post/:id/comment", checkFingerprint, async (req, res) => {
+  try {
+    const { testo } = req.body;
+    const postId = req.params.id;
+
+    if (!testo || testo.trim() === "") {
+      return res.status(400).json({ message: "Il commento non può essere vuoto." });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: "Post non trovato" });
+
+    const utente = await Utente.findById(req.session.user._id).select("username");
+    if (!utente) return res.status(401).json({ message: "Utente non valido" });
+
+    const nuovoCommento = {
+      autore: utente._id,
+      testo,
+      timestamp: new Date()
+    };
+
+    post.commenti.push(nuovoCommento);
+    await post.save();
+
+    res.status(201).json({
+      autore: { username: utente.username },
+      testo
+    });
+  } catch (err) {
+    console.error("Errore nel commento:", err);
+    res.status(500).json({ message: "Errore interno" });
+  }
+});
+
 
 // ✅ Route per ottenere tutti i post (usata nella home)
 app.get("/api/posts", async (req, res) => {
