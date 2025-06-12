@@ -29,78 +29,138 @@
       <p>Caricamento post...</p>
     </div>
   </main>
-
   <script>
-    window.addEventListener("DOMContentLoaded", async () => {
-      try {
-        const res = await fetch("/api/posts", {
-          credentials: "include"
+  window.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const res = await fetch("/api/posts", { credentials: "include" });
+      if (!res.ok) throw new Error("Errore nel recupero dei post");
+      const posts = await res.json();
+
+      const container = document.getElementById("postContainer");
+      container.innerHTML = "";
+
+      posts.forEach(post => {
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ccc";
+        div.style.margin = "20px";
+        div.style.padding = "10px";
+        div.style.backgroundColor = "#fff";
+
+        const autore = document.createElement("p");
+        autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
+
+        const img = document.createElement("img");
+        img.src = post.immagineUrl;
+        img.alt = "Post";
+        img.style.width = "100%";
+        img.style.maxWidth = "500px";
+        img.onerror = () => img.style.display = "none";
+
+        const didascalia = document.createElement("p");
+        didascalia.textContent = post.didascalia;
+
+        const timestamp = document.createElement("small");
+        timestamp.textContent = new Date(post.timestamp).toLocaleString();
+
+        // ❤️ Like
+        const likeBtn = document.createElement("button");
+        likeBtn.textContent = "❤️ Mi piace";
+        likeBtn.style.marginTop = "10px";
+
+        const likeCounter = document.createElement("span");
+        likeCounter.textContent = ` 0 like`;
+        likeCounter.style.marginLeft = "10px";
+
+        likeBtn.addEventListener("click", async () => {
+          try {
+            const resp = await fetch(`/api/post/${post.id}/like`, {
+              method: "PUT",
+              credentials: "include"
+            });
+            if (!resp.ok) throw new Error("Errore nel like");
+            const updated = await resp.json();
+            likeCounter.textContent = ` ${updated.likesCount} like`;
+          } catch (err) {
+            console.error("Errore like:", err);
+          }
         });
-        if (!res.ok) throw new Error("Errore nel recupero dei post");
-        const posts = await res.json();
 
-        const container = document.getElementById("postContainer");
-        container.innerHTML = "";
+        // 💬 Sezione commenti
+        const commentSection = document.createElement("div");
+        commentSection.style.marginTop = "10px";
 
-        posts.forEach(post => {
-          const div = document.createElement("div");
-          div.style.border = "1px solid #ccc";
-          div.style.margin = "20px";
-          div.style.padding = "10px";
-          div.style.backgroundColor = "#fff";
+        const commentList = document.createElement("ul");
+        commentList.style.listStyle = "none";
+        commentList.style.padding = "0";
 
-          const autore = document.createElement("p");
-          autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
-
-          const img = document.createElement("img");
-          img.src = post.immagineUrl;
-          img.alt = "Post";
-          img.style.width = "100%";
-          img.style.maxWidth = "500px";
-          img.onerror = () => img.style.display = "none";
-
-          const didascalia = document.createElement("p");
-          didascalia.textContent = post.didascalia;
-
-          const timestamp = document.createElement("small");
-          timestamp.textContent = new Date(post.timestamp).toLocaleString();
-
-          const likeBtn = document.createElement("button");
-          likeBtn.textContent = "❤️ Mi piace";
-          likeBtn.style.marginTop = "10px";
-
-          const likeCounter = document.createElement("span");
-          likeCounter.textContent = ` 0 like`;
-          likeCounter.style.marginLeft = "10px";
-
-          likeBtn.addEventListener("click", async () => {
-            try {
-              const resp = await fetch(`/api/post/${post.id}/like`, {
-                method: "PUT",
-                credentials: "include"
-              });
-              if (!resp.ok) throw new Error("Errore nel like");
-              const updated = await resp.json();
-              likeCounter.textContent = ` ${updated.likesCount} like`;
-            } catch (err) {
-              console.error("Errore like:", err);
-            }
+        // Carica commenti se presenti
+        if (post.commenti && Array.isArray(post.commenti)) {
+          post.commenti.forEach(c => {
+            const li = document.createElement("li");
+            li.textContent = `${c.autore?.username || 'Anonimo'}: ${c.testo}`;
+            commentList.appendChild(li);
           });
+        }
 
-          div.appendChild(autore);
-          div.appendChild(img);
-          div.appendChild(didascalia);
-          div.appendChild(timestamp);
-          div.appendChild(likeBtn);
-          div.appendChild(likeCounter);
+        const commentForm = document.createElement("form");
+        commentForm.style.marginTop = "8px";
+        commentForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const testo = inputCommento.value.trim();
+          if (!testo) return;
 
-          container.appendChild(div);
-        });
-      } catch (err) {
-        console.error(err);
-        document.getElementById("postContainer").innerHTML = "<p>Errore nel caricamento post</p>";
-      }
-    });
-  </script>
+          try {
+            const res = await fetch(`/api/post/${post.id}/comment`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ testo })
+            });
+            if (!res.ok) throw new Error("Errore nell'invio del commento");
+
+            const nuovo = await res.json();
+
+            const li = document.createElement("li");
+            li.textContent = `${nuovo.autore.username}: ${nuovo.testo}`;
+            commentList.appendChild(li);
+            inputCommento.value = "";
+          } catch (err) {
+            alert("Errore: " + err.message);
+          }
+        };
+
+        const inputCommento = document.createElement("input");
+        inputCommento.type = "text";
+        inputCommento.placeholder = "Scrivi un commento...";
+        inputCommento.style.width = "80%";
+        inputCommento.required = true;
+
+        const submitComment = document.createElement("button");
+        submitComment.textContent = "Invia";
+        submitComment.type = "submit";
+
+        commentForm.appendChild(inputCommento);
+        commentForm.appendChild(submitComment);
+
+        commentSection.appendChild(commentList);
+        commentSection.appendChild(commentForm);
+
+        // ⬇️ Append tutto
+        div.appendChild(autore);
+        div.appendChild(img);
+        div.appendChild(didascalia);
+        div.appendChild(timestamp);
+        div.appendChild(likeBtn);
+        div.appendChild(likeCounter);
+        div.appendChild(commentSection);
+
+        container.appendChild(div);
+      });
+    } catch (err) {
+      console.error(err);
+      document.getElementById("postContainer").innerHTML = "<p>Errore nel caricamento post</p>";
+    }
+  });
+</script>
 </body>
 </html>
