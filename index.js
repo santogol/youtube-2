@@ -103,6 +103,11 @@ const Post = mongoose.model("Post", postSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// ✅ Route di base (homepage)
+app.get("/", (req, res) => {
+  res.send("API BePoli attiva ✅");
+});
+
 // ✅ Route creazione post
 app.post("/api/post", checkFingerprint, upload.single("immagine"), async (req, res) => {
   try {
