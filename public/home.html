@@ -53,7 +53,7 @@
           autore.textContent = `Autore: ${post.autore?.username || "Utente sconosciuto"}`;
 
           const img = document.createElement("img");
-          img.src = `/api/post-img/${post._id}`;
+          img.src = post.immagineUrl;
           img.alt = "Post";
           img.style.width = "100%";
           img.style.maxWidth = "500px";
@@ -65,10 +65,35 @@
           const timestamp = document.createElement("small");
           timestamp.textContent = new Date(post.timestamp).toLocaleString();
 
+          const likeBtn = document.createElement("button");
+          likeBtn.textContent = "❤️ Mi piace";
+          likeBtn.style.marginTop = "10px";
+
+          const likeCounter = document.createElement("span");
+          likeCounter.textContent = ` 0 like`;
+          likeCounter.style.marginLeft = "10px";
+
+          likeBtn.addEventListener("click", async () => {
+            try {
+              const resp = await fetch(`/api/post/${post.id}/like`, {
+                method: "PUT",
+                credentials: "include"
+              });
+              if (!resp.ok) throw new Error("Errore nel like");
+              const updated = await resp.json();
+              likeCounter.textContent = ` ${updated.likesCount} like`;
+            } catch (err) {
+              console.error("Errore like:", err);
+            }
+          });
+
           div.appendChild(autore);
           div.appendChild(img);
           div.appendChild(didascalia);
           div.appendChild(timestamp);
+          div.appendChild(likeBtn);
+          div.appendChild(likeCounter);
+
           container.appendChild(div);
         });
       } catch (err) {
