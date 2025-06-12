@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Crea Post</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+    }
+    form {
+      max-width: 400px;
+      margin: auto;
+    }
+    input, textarea, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Crea un nuovo post</h2>
+
+<form id="postForm" enctype="multipart/form-data">
+  <input type="file" name="immagine" accept="image/*" required>
+  <textarea name="didascalia" placeholder="Scrivi una didascalia..." required></textarea>
+  <button type="submit">Pubblica</button>
+</form>
+
+<script>
+  const form = document.getElementById("postForm");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+
+    const res = await fetch("/api/post", {
+      method: "POST",
+      body: formData,
+      credentials: "include"
+    });
+
+    if (res.ok) {
+      alert("✅ Post creato!");
+      window.location.href = "prova18.html"; // torna alla home
+    } else {
+      const err = await res.json();
+      alert("❌ Errore: " + err.message);
+    }
+  });
+</script>
+
+</body>
+</html>
