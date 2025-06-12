@@ -184,32 +184,34 @@ app.post("/api/post/:id/comment", checkFingerprint, async (req, res) => {
     res.status(500).json({ message: "Errore interno" });
   }
 });
-
-
 // ✅ Route per ottenere tutti i post (usata nella home)
 app.get("/api/posts", async (req, res) => {
   try {
     const posts = await Post.find()
-  .sort({ timestamp: -1 })
-  .populate("autore", "username profilePic")
-  .populate("commenti.autore", "username");
+      .sort({ timestamp: -1 })
+      .populate("autore", "username profilePic")
+      .populate("commenti.autore", "username");
 
-const simplifiedPosts = posts.map(post => ({
-  id: post._id,
-  didascalia: post.didascalia,
-  timestamp: post.timestamp,
-  autore: {
-    username: post.autore.username,
-    profilePicUrl: `/profile-pic/${post.autore._id}`
-  },
-  immagineUrl: `/api/post-img/${post._id}`,
-  commenti: post.commenti.map(commento => ({
-    username: commento.autore?.username || "Anonimo",
-    testo: commento.testo,
-    timestamp: commento.timestamp
-  }))
-}));
+    const simplifiedPosts = posts.map(post => ({
+      id: post._id,
+      didascalia: post.didascalia,
+      timestamp: post.timestamp,
+      autore: {
+        username: post.autore.username,
+        profilePicUrl: `/profile-pic/${post.autore._id}`
+      },
+      immagineUrl: `/api/post-img/${post._id}`,
+      commenti: post.commenti.map(commento => ({
+        username: commento.autore?.username || "Anonimo",
+        testo: commento.testo,
+        timestamp: commento.timestamp
+      }))
+    }));
 
+    res.json(simplifiedPosts); // ✅ MANCAVA QUESTA RIGA
+  } catch (err) {
+    console.error("Errore nel recupero post:", err);
+    res.status(500).json({ message: "Errore interno" });
   }
 });
 
