@@ -127,6 +127,30 @@ app.post("/api/post", checkFingerprint, upload.single("immagine"), async (req, r
   }
 });
 
+// ✅ Metti/togli like a un post
+app.post("/api/post/:id/like", checkFingerprint, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: "Post non trovato" });
+
+    const userId = req.session.user._id;
+    const haGiaMessoLike = post.likes.includes(userId);
+
+    if (haGiaMessoLike) {
+      post.likes.pull(userId);
+    } else {
+      post.likes.push(userId);
+    }
+
+    await post.save();
+    res.json({ liked: !haGiaMessoLike, totalLikes: post.likes.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Errore nel mettere like" });
+  }
+});
+
+
 // ✅ Route per ottenere tutti i post (usata nella home)
 app.get("/api/posts", async (req, res) => {
   try {
